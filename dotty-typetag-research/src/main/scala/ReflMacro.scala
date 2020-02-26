@@ -31,6 +31,7 @@ class Inspector(shift: Int)(given qctx: QuoteContext) {
     tpe2 match {
       case a: AppliedType =>
         log(s"APPLIED: ${a.tycon};; ${a.args}")
+        next().inspectSymbol(a.tycon.typeSymbol.asInstanceOf)
         a.args.map {
           a =>
             next().inspectToB(a.asInstanceOf)
@@ -67,14 +68,17 @@ class Inspector(shift: Int)(given qctx: QuoteContext) {
       }
   }
   private def inspectSymbol(symbol: Symbol) = {
-    log(s"SYMTPE: ${symbol.tree.showExtractors}")
+    log(s"SYMTPE: ${symbol}; ${symbol.flags.is(Flags.Covariant)}")
     symbol.tree match {
       case c: ClassDef =>
-        log(s"SYMPARENTS: ${c.parents}")
+        log(s"CLASSDEF, parents: ${c.parents}")
         c.parents.map {
           a =>
             next().inspectTree(a.asInstanceOf)
         }
+      case t: TypeDef =>
+        log(s"TYPEDEF: $t")
+        next().inspectTree(t.rhs.asInstanceOf)
       case o =>
         log(s"SYMBOL, UNSUPPORTED: $o")
     }
@@ -83,6 +87,7 @@ class Inspector(shift: Int)(given qctx: QuoteContext) {
   def inspect[T](tpe: Type[T]): Unit = {
       val uns = tpe.unseal
       inspectTree(uns)
+      println("--------")
   }
 
   private def tpeAttrs[T](uns: TypeTree): Unit = {
