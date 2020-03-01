@@ -11,12 +11,20 @@ object Inspect {
   }
 }
 
-class Inspector(shift: Int)(given qctx: QuoteContext) {
-  import qctx.tasty.{Type => TType, given, _}
+abstract class Inspector(shift: Int) { self =>
+  val qctx: QuoteContext
+  given as qctx.type = qctx
+  import qctx.tasty.{Type => TType, given _, _}
 
-  def logStart(s: String) = println(" " * shift + s)
-  def log(s: String) = println(" " * shift + " -> " + s)
-  private def next(): Inspector = new Inspector(shift + 1)
+  def inspect[T](tpe: Type[T]): Unit = {
+      val uns = tpe.unseal
+      inspectTree(uns)
+      println("--------")
+  }
+
+  private def logStart(s: String) = println(" " * shift + s)
+  private def log(s: String) = println(" " * shift + " -> " + s)
+  private def next() = new Inspector(shift + 1) { val qctx: self.qctx.type = self.qctx }
 
   private def inspectToB(tpe: TypeOrBounds): Unit = {
     tpe match {
@@ -31,20 +39,20 @@ class Inspector(shift: Int)(given qctx: QuoteContext) {
     tpe2 match {
       case a: AppliedType =>
         log(s"APPLIED: ${a.tycon};; ${a.args}")
-        next().inspectSymbol(a.tycon.typeSymbol.asInstanceOf)
+        next().inspectSymbol(a.tycon.typeSymbol)
         a.args.map {
           a =>
-            next().inspectToB(a.asInstanceOf)
+            next().inspectToB(a)
         }
       case l: TypeLambda =>
         log(s"LAMBDA: ${l.paramNames} ${l.resType}")
-        next().inspectTType(l.resType.asInstanceOf)
+        next().inspectTType(l.resType)
       case t: ParamRef =>
         log(s"PARAM REF: $t ")
       case r: TypeRef =>
         //log(s"TYPEREF: ${r.name} ${r.translucentSuperType}")
         log(s"TYPEREF: ${r.name} ${r.typeSymbol}")
-        next().inspectSymbol(r.typeSymbol.asInstanceOf)
+        next().inspectSymbol(r.typeSymbol)
       case o =>
         log(s"TTYPE, UNSUPPORTED: $o")
     }
@@ -74,20 +82,14 @@ class Inspector(shift: Int)(given qctx: QuoteContext) {
         log(s"CLASSDEF, parents: ${c.parents}")
         c.parents.map {
           a =>
-            next().inspectTree(a.asInstanceOf)
+            next().inspectTree(a.asInstanceOf[TypeTree])
         }
       case t: TypeDef =>
         log(s"TYPEDEF: $t")
-        next().inspectTree(t.rhs.asInstanceOf)
+        next().inspectTree(t.rhs.asInstanceOf[TypeTree])
       case o =>
         log(s"SYMBOL, UNSUPPORTED: $o")
     }
-  }
-
-  def inspect[T](tpe: Type[T]): Unit = {
-      val uns = tpe.unseal
-      inspectTree(uns)
-      println("--------")
   }
 
   private def tpeAttrs[T](uns: TypeTree): Unit = {
@@ -98,5 +100,5 @@ class Inspector(shift: Int)(given qctx: QuoteContext) {
 }
 
 object InspectMacro {
-  def apply[T](given qctx: QuoteContext, tpe: Type[T]): Unit = new Inspector(0).inspect(tpe)
+  def apply[T](given qctx0: QuoteContext, tpe: Type[T]): Unit = new Inspector(0) { val qctx = qctx0 }.inspect(tpe)
 }
