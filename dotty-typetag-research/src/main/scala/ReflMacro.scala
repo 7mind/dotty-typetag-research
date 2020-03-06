@@ -64,9 +64,15 @@ abstract class Inspector(shift: Int) { self =>
     tpe2 match {
       case a: AppliedType =>
         log(s"APPLIED: ${a.tycon};; ${a.args}")
-        val args = a.args.map{x => next().inspectToB(x)}
-        FullReference(a.tycon.toString, args)
-        next().inspectSymbol(a.tycon.typeSymbol)
+        a.args match {
+          case Nil =>
+            NameReference(a.tycon.toString)
+          case o =>
+            val args = a.args.map{x => next().inspectToB(x)}
+            FullReference(a.tycon.toString, args)
+        }
+
+        //next().inspectSymbol(a.tycon.typeSymbol)
 
       case l: TypeLambda =>
         log(s"LAMBDA: ${l.paramNames} ${l.resType}")
@@ -120,7 +126,7 @@ abstract class Inspector(shift: Int) { self =>
         //   a =>
         //     next().inspectTree(a.asInstanceOf[TypeTree])
         // }
-        FullReference(c.name, Nil)
+        NameReference(c.name)
       case t: TypeDef =>
         log(s"TYPEDEF: $t")
         next().inspectTree(t.rhs.asInstanceOf[TypeTree])
