@@ -4,7 +4,9 @@ import scala.deriving._
 import scala.quoted._
 import scala.quoted.matching._
 import scala.compiletime.{erasedValue, summonFrom, constValue}
-import LightTypeTagRefPkg._
+import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef
+import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef._
+import reflect.Selectable.reflectiveSelectable
 
 object Inspect {
   inline def inspect[T]: AbstractReference = ${ labelImpl[T] }
@@ -62,16 +64,25 @@ abstract class Inspector(shift: Int) { self =>
     orTypeTags ++ otherTypeTags
   }
 
+  private def extractName(t: TType): String = {
+    t match {
+      case ref: TypeRef =>
+        ref.name
+      case t: ParamRef =>
+        t.binder.asInstanceOf[{def paramNames: List[Object]}].paramNames(t.paramNum).toString
+    }
+  }
+
   private def inspectTType(tpe2: TType): AbstractReference = {
     tpe2 match {
       case a: AppliedType =>
         log(s"APPLIED: ${a.tycon};; ${a.args}")
         a.args match {
           case Nil =>
-            NameReference(a.tycon.toString)
+            NameReference(extractName(a.tycon))
           case o =>
             val args = a.args.map{x => next().inspectToB(x)}
-            FullReference(a.tycon.toString, args)
+            FullReference(extractName(a.tycon), args)
         }
 
         //next().inspectSymbol(a.tycon.typeSymbol)
@@ -80,11 +91,11 @@ abstract class Inspector(shift: Int) { self =>
         log(s"LAMBDA: ${l.paramNames} ${l.resType}")
         val resType = next().inspectTType(l.resType)
         val paramNames = l.paramNames.map{LambdaParameter(_)}
-        LightTypeTagRefPkg.Lambda(paramNames, resType)
+        LightTypeTagRef.Lambda(paramNames, resType)
 
       case t: ParamRef =>
         log(s"PARAM REF: $t ")
-        NameReference(t.toString)
+        NameReference(extractName(t))
       case a: AndType =>
         log(s"AND: rhs[${a.left}], lhs[${a.right}]")
         IntersectionReference(flattenInspectAnd(a))

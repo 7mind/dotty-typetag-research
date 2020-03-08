@@ -122,6 +122,13 @@ private[izreflect] trait LTTRenderables extends WithRenderableSyntax {
     }
   }
 
+  implicit lazy val r_UnionReference: Renderable[UnionReference] = new Renderable[UnionReference] {
+    override def render(value: UnionReference): String = {
+      value.refs.map(_.render()).mkString("{", " | ", "}")
+    }
+  }
+
+
   implicit lazy val r_TypeParam: Renderable[TypeParam] = new Renderable[TypeParam] {
     override def render(value: TypeParam): String = {
       s"${value.variance.render()}${value.ref}"

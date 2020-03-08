@@ -129,7 +129,7 @@ private[izreflect] object RuntimeAPI {
       }
     }
 
-    private def replaceNamed(reference: AppliedNamedReference): AbstractReference = {
+    private def replaceNamed(reference: AppliedReference): AbstractReference = {
       def returnFullRef(fixedRef: String, parameters: List[TypeParam], prefix: Option[AppliedReference]): FullReference = {
         val p = parameters.map {
           case TypeParam(pref, variance) =>
@@ -179,9 +179,9 @@ private[izreflect] object RuntimeAPI {
       }
     }
 
-    private def ensureAppliedNamed(context: AbstractReference, ref: AbstractReference): AppliedNamedReference = {
+    private def ensureAppliedNamed(context: AbstractReference, ref: AbstractReference): AppliedReference = {
       ref match {
-        case reference: AppliedNamedReference =>
+        case reference: AppliedReference =>
           reference
         case o =>
           throw new IllegalStateException(s"Expected named applied reference but got $o while processing $context")
