@@ -16,15 +16,15 @@
  *
  */
 
-package izreflect.fundamentals.reflection.macrortti
+package izumi.reflect.macrortti
 
-import izreflect.fundamentals.collections.ImmutableMultiMap
-import izreflect.fundamentals.platform.basics.IzBoolean._
-import izreflect.fundamentals.platform.console.TrivialLogger
-import izreflect.fundamentals.platform.strings.IzString._
-import izreflect.fundamentals.reflection.DebugProperties
-import izreflect.fundamentals.reflection.macrortti.LightTypeTagInheritance._
-import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef._
+import izumi.reflect.internal.fundamentals.collections.ImmutableMultiMap
+import izumi.reflect.internal.fundamentals.platform.basics.IzBoolean._
+import izumi.reflect.internal.fundamentals.platform.console.TrivialLogger
+import izumi.reflect.internal.fundamentals.platform.strings.IzString._
+import izumi.reflect.DebugProperties
+import izumi.reflect.macrortti.LightTypeTagInheritance._
+import izumi.reflect.macrortti.LightTypeTagRef._
 
 import scala.collection.mutable
 
@@ -36,8 +36,10 @@ object LightTypeTagInheritance {
 
   final case class Ctx(params: List[LambdaParameter], logger: TrivialLogger) {
     def next(): Ctx = Ctx(params, logger.sub())
+
     def next(newparams: List[LambdaParameter]): Ctx = Ctx(newparams, logger.sub())
   }
+
 }
 
 final class LightTypeTagInheritance(self: LightTypeTag, other: LightTypeTag) {
@@ -47,7 +49,7 @@ final class LightTypeTagInheritance(self: LightTypeTag, other: LightTypeTag) {
   def isChild(): Boolean = {
     val st = self.ref
     val ot = other.ref
-    val logger = TrivialLogger.make[this.type](DebugProperties.`izreflect.debug.macro.rtti`)
+    val logger = TrivialLogger.make[this.type](DebugProperties.`izumi.reflect.debug.macro.rtti`)
 
     logger.log(
       s"""⚙️ Inheritance check: $self vs $other
@@ -103,12 +105,15 @@ final class LightTypeTagInheritance(self: LightTypeTag, other: LightTypeTag) {
           }
         )
 
+      // lambdas
       case (_: AppliedNamedReference, t: Lambda) =>
         isChild(ctx.next(t.input))(selfT, t.output)
       case (s: Lambda, t: AppliedNamedReference) =>
         isChild(ctx.next(s.input))(s.output, t)
       case (s: Lambda, o: Lambda) =>
         s.input.size == o.input.size && isChild(ctx.next(s.normalizedParams.map(p => LambdaParameter(p.ref.name))))(s.normalizedOutput, o.normalizedOutput)
+
+      // intersections
       case (s: IntersectionReference, t: IntersectionReference) =>
         // yeah, this shit is quadratic
         s.refs.forall {
@@ -123,6 +128,22 @@ final class LightTypeTagInheritance(self: LightTypeTag, other: LightTypeTag) {
       case (s: LightTypeTagRef, o: IntersectionReference) =>
         o.refs.forall(t => ctx.isChild(s, t))
 
+      // unions
+      case (s: UnionReference, t: UnionReference) =>
+        // yeah, this shit is quadratic
+        s.refs.exists {
+          c =>
+            t.refs.forall {
+              p =>
+                ctx.isChild(c, p)
+            }
+        }
+      case (s: UnionReference, t: LightTypeTagRef) =>
+        s.refs.forall(c => ctx.isChild(c, t))
+      case (s: LightTypeTagRef, o: UnionReference) =>
+        o.refs.exists(t => ctx.isChild(s, t))
+
+      // refinements
       case (s: Refinement, t: Refinement) =>
         ctx.isChild(s.reference, t.reference) && t.decls.diff(s.decls).isEmpty
       case (s: Refinement, t: LightTypeTagRef) =>

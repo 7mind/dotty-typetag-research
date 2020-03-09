@@ -16,30 +16,30 @@
  *
  */
 
-package izreflect.fundamentals.platform.console
+package izumi.reflect.internal.fundamentals.platform.console
 
-import izreflect.fundamentals.platform.console.TrivialLogger.Config
-import izreflect.fundamentals.platform.strings.IzString._
+import izumi.reflect.internal.fundamentals.platform.console.TrivialLogger.Config
+import izumi.reflect.internal.fundamentals.platform.strings.IzString._
 
 import scala.collection.mutable
 import scala.reflect.{ClassTag, classTag}
 
-private[izreflect] trait TrivialLogger {
+private[reflect] trait TrivialLogger {
   def log(s: => String): Unit
   def sub(): TrivialLogger = sub(1)
   def sub(delta: Int): TrivialLogger
 }
 
-private[izreflect] trait AbstractStringTrivialSink {
+private[reflect] trait AbstractStringTrivialSink {
   def flush(value: => String): Unit
 }
-private[izreflect] object AbstractStringTrivialSink {
-  object Console extends AbstractStringTrivialSink {
+private[reflect] object AbstractStringTrivialSink {
+  private[reflect] object Console extends AbstractStringTrivialSink {
     override def flush(value: => String): Unit = System.out.println(value)
   }
 }
 
-private[izreflect] final class TrivialLoggerImpl(config: Config, id: String, logMessages: Boolean, logErrors: Boolean, loggerLevel: Int) extends TrivialLogger {
+private[reflect] final class TrivialLoggerImpl(config: Config, id: String, logMessages: Boolean, logErrors: Boolean, loggerLevel: Int) extends TrivialLogger {
   override def log(s: => String): Unit = {
     flush(format(s))
   }
@@ -59,8 +59,8 @@ private[izreflect] final class TrivialLoggerImpl(config: Config, id: String, log
   }
 }
 
-object TrivialLogger {
-  final case class Config(
+private[reflect] object TrivialLogger {
+  private[reflect] final case class Config(
                            sink: AbstractStringTrivialSink = AbstractStringTrivialSink.Console,
                            forceLog: Boolean = false
                          )

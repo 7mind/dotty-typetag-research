@@ -16,16 +16,17 @@
  *
  */
 
-package izreflect.fundamentals.reflection.macrortti
+package izumi.reflect.macrortti
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
-import izreflect.fundamentals.platform.language.unused
-import izreflect.fundamentals.reflection.macrortti.LightTypeTag.ParsedLightTypeTag.SubtypeDBs
-import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef.SymName.{SymTermName, SymTypeName}
-import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef.{AbstractReference, AppliedNamedReference, AppliedReference, NameReference, SymName}
-//import izreflect.thirdparty.internal.boopickle.Default.Pickler
+import izumi.reflect.internal.fundamentals.platform.language.unused
+import izumi.reflect.macrortti.LightTypeTag.ParsedLightTypeTag.SubtypeDBs
+import izumi.reflect.macrortti.LightTypeTagRef.SymName.{SymTermName, SymTypeName}
+import izumi.reflect.macrortti.LightTypeTagRef.{AbstractReference, AppliedReference, NameReference, SymName}
+
+//import izumi.reflect.thirdparty.internal.boopickle.Default.Pickler
 
 /**
   * Extracts internal databases from [[LightTypeTag]].
@@ -44,8 +45,8 @@ abstract class LightTypeTag(
 ) extends Serializable {
 
   def ref: LightTypeTagRef
-  lazy val basesdb: Map[AbstractReference, Set[AbstractReference]] = bases()
-  lazy val idb: Map[NameReference, Set[NameReference]] = inheritanceDb()
+  private[macrortti] lazy val basesdb: Map[AbstractReference, Set[AbstractReference]] = bases()
+  private[macrortti] lazy val idb: Map[NameReference, Set[NameReference]] = inheritanceDb()
 
   @inline final def <:<(maybeParent: LightTypeTag): Boolean = {
     new LightTypeTagInheritance(this, maybeParent).isChild()
@@ -58,7 +59,7 @@ abstract class LightTypeTag(
   final def decompose: Set[LightTypeTag] = {
     ref match {
       case LightTypeTagRef.IntersectionReference(refs) =>
-        refs.map(r => LightTypeTag.apply(r, bases(), inheritanceDb()))
+        refs.map(r => LightTypeTag(r, basesdb, idb))
       case _ =>
         Set(this)
     }
@@ -150,7 +151,7 @@ abstract class LightTypeTag(
   /** Fully-qualified rendering of a type, including packages and prefix types.
     * Use [[toString]] for a rendering that omits package names */
   def repr: String = {
-    import izreflect.fundamentals.reflection.macrortti.LTTRenderables.Long._
+    import izumi.reflect.macrortti.LTTRenderables.Long._
     ref.render()
   }
 
@@ -166,7 +167,7 @@ abstract class LightTypeTag(
 
   /** Print internal structures state */
   def debug(name: String = ""): String = {
-    import izreflect.fundamentals.platform.strings.IzString._
+    import izumi.reflect.internal.fundamentals.platform.strings.IzString._
       s"""⚙️ $name: ${this.toString}
          |⚡️bases: ${basesdb.mapValues(_.niceList(prefix = "* ").shift(2)).niceList()}
          |⚡️inheritance: ${idb.mapValues(_.niceList(prefix = "* ").shift(2)).niceList()}
@@ -213,11 +214,11 @@ object LightTypeTag {
   }
 
   def parse[T](hashCode: Int, refString: String, basesString: String, @unused version: Int): LightTypeTag = {
-    // lazy val shared = {
-    //   subtypeDBsSerializer.unpickle(ByteBuffer.wrap(basesString.getBytes(StandardCharsets.ISO_8859_1)))
-    // }
-    val shared: LightTypeTag = ???
-    new ParsedLightTypeTag(hashCode, refString, () => shared.basesdb, () => shared.idb)
+    lazy val shared: SubtypeDBs = ??? /*{
+      subtypeDBsSerializer.unpickle(ByteBuffer.wrap(basesString.getBytes(StandardCharsets.ISO_8859_1)))
+    }*/
+
+    new ParsedLightTypeTag(hashCode, refString, () => shared.bases, () => shared.idb)
   }
 
   final class ParsedLightTypeTag(
@@ -244,7 +245,7 @@ object LightTypeTag {
   }
 
   // private[macrortti] val (lttRefSerializer: Pickler[LightTypeTagRef], subtypeDBsSerializer: Pickler[SubtypeDBs]) = {
-  //   import izreflect.thirdparty.internal.boopickle.Default._
+  //   import izumi.reflect.thirdparty.internal.boopickle.Default._
 
   //   implicit lazy val symTypeName: Pickler[SymTypeName] = generatePickler[SymTypeName]
   //   implicit lazy val symTermName: Pickler[SymTermName] = generatePickler[SymTermName]
@@ -263,7 +264,7 @@ object LightTypeTag {
   // }
 
   private[macrortti] def mergeIDBs[T](self: Map[T, Set[T]], other: Map[T, Set[T]]): Map[T, Set[T]] = {
-    import izreflect.fundamentals.collections.IzCollections._
+    import izumi.reflect.internal.fundamentals.collections.IzCollections._
 
     val both = self.toSeq ++ other.toSeq
     both.toMultimap.map {

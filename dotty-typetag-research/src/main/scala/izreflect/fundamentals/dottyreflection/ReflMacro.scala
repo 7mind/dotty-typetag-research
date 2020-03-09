@@ -4,8 +4,8 @@ import scala.deriving._
 import scala.quoted._
 import scala.quoted.matching._
 import scala.compiletime.{erasedValue, summonFrom, constValue}
-import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef
-import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef._
+import izumi.reflect.macrortti.LightTypeTagRef
+import izumi.reflect.macrortti.LightTypeTagRef._
 import reflect.Selectable.reflectiveSelectable
 
 object Inspect {

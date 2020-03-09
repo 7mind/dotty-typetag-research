@@ -16,10 +16,10 @@
  *
  */
 
-package izreflect.fundamentals.reflection.macrortti
+package izumi.reflect.macrortti
 
-import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef.SymName.SymTypeName
-import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef._
+import izumi.reflect.macrortti.LightTypeTagRef.SymName.SymTypeName
+import izumi.reflect.macrortti.LightTypeTagRef._
 
 import scala.annotation.tailrec
 
@@ -55,7 +55,9 @@ sealed trait LightTypeTagRef {
       reference match {
         case reference: AppliedNamedReference => appliedNamedReference(reference)
         case LightTypeTagRef.IntersectionReference(refs) =>
-          LightTypeTagRef.maybeIntersection(refs.map(a => ??? /*appliedNamedReference*/))
+          LightTypeTagRef.maybeIntersection(refs.map(appliedReference))
+        case LightTypeTagRef.UnionReference(refs) =>
+          LightTypeTagRef.maybeUnion(refs.map(appliedReference))
         case LightTypeTagRef.Refinement(reference, decls) =>
           LightTypeTagRef.Refinement(appliedReference(reference), decls)
       }
@@ -90,6 +92,7 @@ sealed trait LightTypeTagRef {
       case NameReference(ref, _, _) => render(ref)
       case FullReference(ref, _, _) => render(SymTypeName(ref))
       case IntersectionReference(refs) => refs.map(_.shortName).mkString(" & ")
+      case UnionReference(refs) => refs.map(_.shortName).mkString(" | ")
       case Refinement(reference, _) => getName(render, reference)
     }
   }
@@ -107,6 +110,11 @@ sealed trait LightTypeTagRef {
             case Some(p: AppliedReference) => p
           }
           if (prefixes.nonEmpty) Some(maybeIntersection(prefixes)) else None
+        case UnionReference(refs) =>
+          val prefixes = refs.map(_.getPrefix).collect {
+            case Some(p: AppliedReference) => p
+          }
+          if (prefixes.nonEmpty) Some(maybeUnion(prefixes)) else None
         case Refinement(reference, _) => getPrefix(reference)
       }
     }
@@ -130,10 +138,13 @@ sealed trait LightTypeTagRef {
         parameters.map(_.ref)
       case IntersectionReference(_) =>
         Nil
+      case UnionReference(_) =>
+        Nil
       case Refinement(reference, _) =>
         reference.typeArgs
     }
   }
+
   private[macrortti] def applySeq(refs: Seq[AbstractReference]): AbstractReference = {
     applyParameters {
       l =>
@@ -223,7 +234,6 @@ object LightTypeTagRef {
     override def toString: String = this.render()
   }
 
-
   private[this] val eradicate = Set[AppliedReference](
     LightTypeTagInheritance.tpeAny,
     LightTypeTagInheritance.tpeAnyRef,
@@ -239,6 +249,18 @@ object LightTypeTagRef {
         head
       case _ =>
         IntersectionReference(normalized)
+    }
+  }
+
+  def maybeUnion(refs: Set[AppliedReference]): AppliedReference = {
+    val normalized = refs.diff(eradicate)
+    normalized.toList match {
+      case Nil =>
+        LightTypeTagInheritance.tpeAny
+      case head :: Nil =>
+        head
+      case _ =>
+        UnionReference(normalized)
     }
   }
 

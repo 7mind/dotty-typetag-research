@@ -16,12 +16,12 @@
  *
  */
 
-package izreflect.fundamentals.reflection.macrortti
+package izumi.reflect.macrortti
 
-import izreflect.fundamentals.platform.language.unused
-import izreflect.fundamentals.reflection.macrortti.LightTypeTagRef._
+import izumi.reflect.internal.fundamentals.platform.language.unused
+import izumi.reflect.macrortti.LightTypeTagRef._
 
-private[izreflect] object RuntimeAPI {
+private[reflect] object RuntimeAPI {
 
   def unpack(ref: AbstractReference): Set[NameReference] = {
     def unpackBoundaries(b: Boundaries): Set[NameReference] = {
@@ -46,6 +46,8 @@ private[izreflect] object RuntimeAPI {
                 f.parameters.map(_.ref).flatMap(unpack).toSet ++ f.prefix.toSet.flatMap(unpack) + f.asName
             }
           case IntersectionReference(refs) =>
+            refs.flatMap(unpack)
+          case UnionReference(refs) =>
             refs.flatMap(unpack)
           case Refinement(reference, decls) =>
             unpack(reference) ++ decls.flatMap(d => d match {
@@ -112,8 +114,11 @@ private[izreflect] object RuntimeAPI {
     private def replaceApplied(reference: AppliedReference): AbstractReference = {
       reference match {
         case IntersectionReference(refs) =>
-          val replaced = refs.map(replaceNamed).map(r => ensureAppliedNamed(reference, r))
+          val replaced = refs.map(replaceApplied).map(r => ensureApplied(reference, r))
           maybeIntersection(replaced)
+        case UnionReference(refs) =>
+          val replaced = refs.map(replaceApplied).map(r => ensureApplied(reference, r))
+          maybeUnion(replaced)
         case Refinement(base, decls) =>
 
           val rdecls = decls.map {
@@ -129,7 +134,7 @@ private[izreflect] object RuntimeAPI {
       }
     }
 
-    private def replaceNamed(reference: AppliedReference): AbstractReference = {
+    private def replaceNamed(reference: AppliedNamedReference): AbstractReference = {
       def returnFullRef(fixedRef: String, parameters: List[TypeParam], prefix: Option[AppliedReference]): FullReference = {
         val p = parameters.map {
           case TypeParam(pref, variance) =>
@@ -176,15 +181,6 @@ private[izreflect] object RuntimeAPI {
           reference
         case o =>
           throw new IllegalStateException(s"Expected applied reference but got $o while processing $context")
-      }
-    }
-
-    private def ensureAppliedNamed(context: AbstractReference, ref: AbstractReference): AppliedReference = {
-      ref match {
-        case reference: AppliedReference =>
-          reference
-        case o =>
-          throw new IllegalStateException(s"Expected named applied reference but got $o while processing $context")
       }
     }
   }

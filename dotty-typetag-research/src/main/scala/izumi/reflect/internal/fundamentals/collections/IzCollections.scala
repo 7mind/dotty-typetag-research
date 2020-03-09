@@ -16,11 +16,10 @@
  *
  */
 
-package izreflect.fundamentals
+package izumi.reflect.internal.fundamentals.collections
 
-import scala.collection.mutable
+import scala.language.implicitConversions
 
-package object collections {
-  private[izreflect] type MutableMultiMap[A, B] = mutable.HashMap[A, mutable.Set[B]] with mutable.MultiMap[A, B]
-  private[izreflect] type ImmutableMultiMap[A, B] = Map[A, Set[B]]
+private[reflect] object IzCollections {
+  implicit def toRich[A, B](xs: Iterable[(A, B)]): IzMappings[A, B] = new IzMappings(xs)
 }
