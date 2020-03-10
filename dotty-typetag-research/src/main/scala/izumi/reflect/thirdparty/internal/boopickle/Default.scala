@@ -22,7 +22,7 @@ import java.nio.{ByteBuffer, ByteOrder}
 import java.util.UUID
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
-//import scala.language.experimental.macros
+import scala.language.experimental.macros
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -153,17 +153,23 @@ private[reflect] object SpeedOriented {
 /**
   * Provides basic implicit picklers including macro support for case classes
   */
-private[reflect] object Default
-    extends Base
+// private[reflect] object Default
+//     extends Base
+//     with BasicImplicitPicklers
+//     with TransformPicklers
+//     with TuplePicklers
+//     with MaterializePicklerFallback
+
+private[reflect] object NoMacro
+  extends Base
     with BasicImplicitPicklers
     with TransformPicklers
     with TuplePicklers
-    //with MaterializePicklerFallback
 
 /**
   * Provides basic implicit picklers without macro support for case classes
   */
-private[reflect] object DefaultBasic extends Base with BasicImplicitPicklers with TransformPicklers with TuplePicklers {
+// private[reflect] object DefaultBasic extends Base with BasicImplicitPicklers with TransformPicklers with TuplePicklers {
 
-  //def generatePickler[T]: Pickler[T] = macro PicklerMaterializersImpl.materializePickler[T]
-}
+//   def generatePickler[T]: Pickler[T] = macro PicklerMaterializersImpl.materializePickler[T]
+// }
