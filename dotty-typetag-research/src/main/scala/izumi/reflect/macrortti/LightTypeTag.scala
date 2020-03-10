@@ -252,7 +252,7 @@ object LightTypeTag {
 
   }
 
-  private[macrortti] val (lttRefSerializer: Pickler[LightTypeTagRef], subtypeDBsSerializer: Pickler[SubtypeDBs]) = {
+  private[reflect] val (lttRefSerializer: Pickler[LightTypeTagRef], subtypeDBsSerializer: Pickler[SubtypeDBs]) = {
     import izumi.reflect.thirdparty.internal.boopickle.BasicPicklers.{IntPickler, StringPickler}
     import izumi.reflect.thirdparty.internal.boopickle.NoMacro.{Pickler => _, _}
     import izumi.reflect.thirdparty.internal.boopickle

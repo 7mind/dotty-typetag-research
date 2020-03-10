@@ -1,4 +1,4 @@
-package izreflect.fundamentals.dottyreflection
+package izumi.reflect.dottyreflection
 
 object Main {
 
