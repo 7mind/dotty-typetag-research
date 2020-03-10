@@ -26,8 +26,8 @@ import izumi.reflect.macrortti.LightTypeTag.ParsedLightTypeTag.SubtypeDBs
 import izumi.reflect.macrortti.LightTypeTagRef.SymName.{SymTermName, SymTypeName}
 import izumi.reflect.macrortti.LightTypeTagRef.{AbstractReference, AppliedReference, NameReference, SymName}
 
-//import izumi.reflect.thirdparty.internal.boopickle.Default.Pickler
-
+import izumi.reflect.thirdparty.internal.boopickle.Default.Pickler
+import izumi.reflect.thirdparty.internal.boopickle.UnpickleState
 /**
   * Extracts internal databases from [[LightTypeTag]].
   * Should not be used under normal circumstances.
@@ -214,9 +214,9 @@ object LightTypeTag {
   }
 
   def parse[T](hashCode: Int, refString: String, basesString: String, @unused version: Int): LightTypeTag = {
-    lazy val shared: SubtypeDBs = ??? /*{
-      subtypeDBsSerializer.unpickle(ByteBuffer.wrap(basesString.getBytes(StandardCharsets.ISO_8859_1)))
-    }*/
+    lazy val shared: SubtypeDBs = {
+      subtypeDBsSerializer.unpickle(UnpickleState(ByteBuffer.wrap(basesString.getBytes(StandardCharsets.ISO_8859_1))))
+    }
 
     new ParsedLightTypeTag(hashCode, refString, () => shared.bases, () => shared.idb)
   }
@@ -227,9 +227,9 @@ object LightTypeTag {
     bases: () => Map[AbstractReference, Set[AbstractReference]],
     db: () => Map[NameReference, Set[NameReference]]
   ) extends LightTypeTag(bases, db) {
-    override lazy val ref: LightTypeTagRef = ??? /*{
-      lttRefSerializer.unpickle(ByteBuffer.wrap(refString.getBytes(StandardCharsets.ISO_8859_1)))
-    }*/
+    override lazy val ref: LightTypeTagRef = {
+      lttRefSerializer.unpickle(UnpickleState(ByteBuffer.wrap(refString.getBytes(StandardCharsets.ISO_8859_1))))
+    }
 
     override def equals(other: Any): Boolean = {
       other match {
@@ -244,24 +244,34 @@ object LightTypeTag {
     final case class SubtypeDBs(bases: Map[AbstractReference, Set[AbstractReference]], idb: Map[NameReference, Set[NameReference]])
   }
 
-  // private[macrortti] val (lttRefSerializer: Pickler[LightTypeTagRef], subtypeDBsSerializer: Pickler[SubtypeDBs]) = {
-  //   import izumi.reflect.thirdparty.internal.boopickle.Default._
+  private[macrortti] val (lttRefSerializer: Pickler[LightTypeTagRef], subtypeDBsSerializer: Pickler[SubtypeDBs]) = {
+    import izumi.reflect.thirdparty.internal.boopickle.Default._
 
-  //   implicit lazy val symTypeName: Pickler[SymTypeName] = generatePickler[SymTypeName]
-  //   implicit lazy val symTermName: Pickler[SymTermName] = generatePickler[SymTermName]
-  //   implicit lazy val symName: Pickler[SymName] = generatePickler[SymName]
-  //   implicit lazy val appliedRefSerializer: Pickler[AppliedReference] = generatePickler[AppliedReference]
-  //   implicit lazy val nameRefSerializer: Pickler[NameReference] = generatePickler[NameReference]
-  //   implicit lazy val abstractRefSerializer: Pickler[AbstractReference] = generatePickler[AbstractReference]
+    // implicit lazy val symTypeName: Pickler[SymTypeName] = generatePickler[SymTypeName]
+    // implicit lazy val symTermName: Pickler[SymTermName] = generatePickler[SymTermName]
+    // implicit lazy val symName: Pickler[SymName] = generatePickler[SymName]
+    // implicit lazy val appliedRefSerializer: Pickler[AppliedReference] = generatePickler[AppliedReference]
+    // implicit lazy val nameRefSerializer: Pickler[NameReference] = generatePickler[NameReference]
+    // implicit lazy val abstractRefSerializer: Pickler[AbstractReference] = generatePickler[AbstractReference]
 
-  //   implicit lazy val refSerializer: Pickler[LightTypeTagRef] = generatePickler[LightTypeTagRef]
-  //   implicit lazy val dbsSerializer: Pickler[SubtypeDBs] = generatePickler[SubtypeDBs]
+    // implicit lazy val refSerializer: Pickler[LightTypeTagRef] = generatePickler[LightTypeTagRef]
+    // implicit lazy val dbsSerializer: Pickler[SubtypeDBs] = generatePickler[SubtypeDBs]
 
-  //   // false positive unused warnings
-  //   lazy val _ = (symTypeName, symTermName, symName, appliedRefSerializer, nameRefSerializer, abstractRefSerializer)
+    implicit lazy val symTypeName: Pickler[SymTypeName] = ???
+    implicit lazy val symTermName: Pickler[SymTermName] = ???
+    implicit lazy val symName: Pickler[SymName] = ???
+    implicit lazy val appliedRefSerializer: Pickler[AppliedReference] = ???
+    implicit lazy val nameRefSerializer: Pickler[NameReference] = ???
+    implicit lazy val abstractRefSerializer: Pickler[AbstractReference] = ???
 
-  //   (refSerializer, dbsSerializer)
-  // }
+    implicit lazy val refSerializer: Pickler[LightTypeTagRef] = ???
+    implicit lazy val dbsSerializer: Pickler[SubtypeDBs] = ???
+
+    // false positive unused warnings
+    lazy val _ = (symTypeName, symTermName, symName, appliedRefSerializer, nameRefSerializer, abstractRefSerializer)
+
+    (refSerializer, dbsSerializer)
+  }
 
   private[macrortti] def mergeIDBs[T](self: Map[T, Set[T]], other: Map[T, Set[T]]): Map[T, Set[T]] = {
     import izumi.reflect.internal.fundamentals.collections.IzCollections._
