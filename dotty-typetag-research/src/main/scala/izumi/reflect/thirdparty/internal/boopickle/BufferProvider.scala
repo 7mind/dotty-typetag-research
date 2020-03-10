@@ -89,7 +89,7 @@ private[reflect] abstract class ByteBufferProvider extends BufferProvider {
 }
 
 private[reflect] object ByteBufferProvider {
-  final val initSize   = 512
+  final val initSize   = 64
   final val expandSize = initSize * 8
 }
 
