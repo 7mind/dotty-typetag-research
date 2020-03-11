@@ -9,6 +9,9 @@ object Main {
 
   trait A
   trait B extends A
+
+  trait Listoid[+K]
+
   def main(args: Array[String]): Unit = {
     class Foo[+F[_]]()
     class Bar[+F[+_, +_]]() extends Foo[F[Int, *]]
@@ -30,6 +33,12 @@ object Main {
     println(assert(!(bazTag <:< barXTag)))
 
     println(assert(Inspect.inspect[B] <:<  Inspect.inspect[A]))
+
+    val listTag = Inspect.inspectK[Listoid]
+    val intTag = Inspect.inspect[Int]
+    val listIntTag = Inspect.inspect[Listoid[Int]]
+
+    println(assert(listTag.combine(intTag) <:< listIntTag))
 
     println("DONE")
   }

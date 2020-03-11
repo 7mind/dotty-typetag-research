@@ -18,9 +18,19 @@ object Inspect {
   inline def inspect[T]: LightTypeTag = ${ typetagMacroImpl[T] }
 
   def typetagMacroImpl[T: Type](given qctx: QuoteContext): Expr[LightTypeTag] = {
+    typetagMacroImplUni(implicitly[Type[T]])
+  }
+
+  inline def inspectK[T[_]]: LightTypeTag = ${ typetagMacroImplK[T] }
+
+  def typetagMacroImplK[T[_]: Type](given qctx: QuoteContext): Expr[LightTypeTag] = {
+    typetagMacroImplUni(implicitly[Type[T]])
+  }
+
+  def typetagMacroImplUni(t: Type[_])(given qctx: QuoteContext): Expr[LightTypeTag] = {
     println("BEFORE")
-    val ref = InspectMacro.apply[T]
-    val dbs = InspectMacro.nameRefs[T]
+    val ref = InspectMacro.apply(t)
+    val dbs = InspectMacro.nameRefs(t)
 
     @inline def serialize[A: Pickler](a: A): String = {
       val bytes = PickleImpl(a).toByteBuffer.array()
@@ -38,28 +48,6 @@ object Inspect {
     //prinltn(strDBs)
     '{ LightTypeTag.parse(${Expr(ref.hashCode())}, ${Expr(strRef)}, ${Expr(strDbs)}, 0) }
   }
-
-  //   def typetagMacroImplUni(t: Type[_])(given qctx: QuoteContext): Expr[LightTypeTag] = {
-  //   println("BEFORE")
-  //   val ref = InspectMacro.apply[T]
-  //   val dbs = InspectMacro.nameRefs[T]
-
-  //   @inline def serialize[A: Pickler](a: A): String = {
-  //     val bytes = PickleImpl(a).toByteBuffer.array()
-  //     new String(bytes, 0, bytes.length, StandardCharsets.ISO_8859_1)
-  //   }
-  //   val strRef = serialize(ref)(LightTypeTag.lttRefSerializer)
-  //   val strDbs = serialize(dbs)(LightTypeTag.subtypeDBsSerializer)
-
-  //   def string2hex(str: String): String = {
-  //       str.toList.map(_.toInt.toHexString).mkString
-  //   }
-  //   println(s"$ref => ${strRef.size} bytes, ${string2hex(strRef)}")
-  //   println(s"$dbs => ${strDbs.size} bytes, ${string2hex(strDbs)}")
-  //   println("AFTER")
-  //   //prinltn(strDBs)
-  //   '{ LightTypeTag.parse(${Expr(ref.hashCode())}, ${Expr(strRef)}, ${Expr(strDbs)}, 0) }
-  // }
 }
 
 abstract class Inspector(shift: Int) { self =>
@@ -67,7 +55,7 @@ abstract class Inspector(shift: Int) { self =>
   given as qctx.type = qctx
   import qctx.tasty.{Type => TType, given _, _}
 
-  def buildDbs[T](tpe: Type[T]): SubtypeDBs = {
+  def buildDbs(tpe: Type[_]): SubtypeDBs = {
       val uns = tpe.unseal
       val v = inspectTreeToName(uns)
         .toMultimap
@@ -96,7 +84,7 @@ abstract class Inspector(shift: Int) { self =>
       SubtypeDBs(f, v)
   }
 
-  def inspect[T](tpe: Type[T]): AbstractReference = {
+  def inspect(tpe: Type[_]): AbstractReference = {
       val uns = tpe.unseal
       println(s" -------- about to inspect ${tpe} --------")
       val v = inspectTree(uns)
@@ -377,6 +365,6 @@ abstract class Inspector(shift: Int) { self =>
 }
 
 object InspectMacro {
-  def apply[T](given qctx0: QuoteContext, tpe: Type[T]): AbstractReference = new Inspector(0) { val qctx = qctx0 }.inspect(tpe)
-  def nameRefs[T](given qctx0: QuoteContext, tpe: Type[T]): SubtypeDBs = new Inspector(0) { val qctx = qctx0 }.buildDbs(tpe)
+  def apply(tpe: Type[_])(given qctx0: QuoteContext): AbstractReference = new Inspector(0) { val qctx = qctx0 }.inspect(tpe)
+  def nameRefs(tpe: Type[_])(given qctx0: QuoteContext): SubtypeDBs = new Inspector(0) { val qctx = qctx0 }.buildDbs(tpe)
 }
