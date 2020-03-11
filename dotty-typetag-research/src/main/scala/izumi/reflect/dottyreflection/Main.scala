@@ -4,8 +4,8 @@ object Main {
 
   trait Y
   trait Z extends Y
-  trait XS
-  trait X[+A, -B <: Y] extends XS {}
+  trait XS[+K]
+  trait X[+A, -B <: Y] extends XS[A] {}
 
   def main(args: Array[String]): Unit = {
     class Foo[+F[_]]()
