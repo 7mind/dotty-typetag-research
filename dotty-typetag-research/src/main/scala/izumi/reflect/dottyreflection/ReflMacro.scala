@@ -15,19 +15,11 @@ import izumi.reflect.thirdparty.internal.boopickle.PickleImpl
 import izumi.reflect.internal.fundamentals.collections.IzCollections.toRich
 
 object Inspect {
-  inline def inspect[T]: LightTypeTag = ${ typetagMacroImpl[T] }
+  inline def inspect[T]: LightTypeTag = ${ inspectAny(implicitly[Type[T]]) }
 
-  def typetagMacroImpl[T: Type](given qctx: QuoteContext): Expr[LightTypeTag] = {
-    typetagMacroImplUni(implicitly[Type[T]])
-  }
+  inline def inspectK[T[_]]: LightTypeTag = ${ inspectAny(implicitly[Type[T]]) }
 
-  inline def inspectK[T[_]]: LightTypeTag = ${ typetagMacroImplK[T] }
-
-  def typetagMacroImplK[T[_]: Type](given qctx: QuoteContext): Expr[LightTypeTag] = {
-    typetagMacroImplUni(implicitly[Type[T]])
-  }
-
-  def typetagMacroImplUni(t: Type[_])(given qctx: QuoteContext): Expr[LightTypeTag] = {
+  def inspectAny(t: Type[_])(given qctx: QuoteContext): Expr[LightTypeTag] = {
     println("BEFORE")
     val ref = InspectMacro.apply(t)
     val dbs = InspectMacro.nameRefs(t)
