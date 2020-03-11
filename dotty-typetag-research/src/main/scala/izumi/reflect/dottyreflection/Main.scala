@@ -5,7 +5,7 @@ object Main {
   trait Y
   trait Z extends Y
   trait XS[+K]
-  trait X[+A, -B <: Y] extends XS[A] {}
+  trait X[+AAAAAAARG, -B <: Y] extends XS[AAAAAAARG] {}
 
   trait A
   trait B extends A
@@ -25,6 +25,7 @@ object Main {
     println(s"Baz tag: ${bazTag}")
     println(s"Bar[X] tag: ${barXTag}")
 
+    println(bazTag.debug())
     println(barXTag.debug())
 
     println(assert(bazTag =:= bazTag2))

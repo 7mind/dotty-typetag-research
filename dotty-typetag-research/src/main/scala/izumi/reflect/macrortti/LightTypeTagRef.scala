@@ -175,7 +175,7 @@ sealed trait LightTypeTagRef {
 }
 
 object LightTypeTagRef {
-  import LTTRenderables.Short._
+  import LTTRenderables.Long._
 
   sealed trait AbstractReference extends LightTypeTagRef
 

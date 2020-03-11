@@ -18,7 +18,6 @@ object Inspect {
   inline def inspect[T <: AnyKind]: LightTypeTag = ${ inspectAny[T] }
 
   def inspectAny[T <: AnyKind : Type](given qctx: QuoteContext): Expr[LightTypeTag] = {
-    println("BEFORE")
     val ref = TypeInspections.apply[T]
     val nameDb = TypeInspections.nameDb[T]
     val fullDb = TypeInspections.fullDb[T]
@@ -34,9 +33,8 @@ object Inspect {
     def string2hex(str: String): String = {
         str.toList.map(_.toInt.toHexString).mkString
     }
-    println(s"$ref => ${strRef.size} bytes, ${string2hex(strRef)}")
-    println(s"$dbs => ${strDbs.size} bytes, ${string2hex(strDbs)}")
-    println("AFTER")
+    //println(s"$ref => ${strRef.size} bytes, ${string2hex(strRef)}")
+    //println(s"$dbs => ${strDbs.size} bytes, ${string2hex(strDbs)}")
     //prinltn(strDBs)
     '{ LightTypeTag.parse(${Expr(ref.hashCode())}, ${Expr(strRef)}, ${Expr(strDbs)}, 0) }
   }

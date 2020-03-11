@@ -15,7 +15,6 @@ import izumi.reflect.thirdparty.internal.boopickle.PickleImpl
 import izumi.reflect.internal.fundamentals.collections.IzCollections.toRich
 
 
-
 abstract class Inspector(protected val shift: Int) extends InspectorBase {
   self =>
 
@@ -39,19 +38,42 @@ abstract class Inspector(protected val shift: Int) extends InspectorBase {
   private[dottyreflection] def inspectTType(tpe2: TType): AbstractReference = {
     tpe2 match {
       case a: AppliedType =>
-        log(s"APPLIED: ${a.tycon};; ${a.args}")
         a.args match {
           case Nil =>
-            NameReference(extractName(a.tycon))
+            asNameRef(a.tycon)
           case o =>
-            val args = a.args.map { x => next().inspectToB(x) }
-            FullReference(extractName(a.tycon), args)
+            val tycontree = a.tycon.asInstanceOf[TypeRef].typeSymbol.tree.asInstanceOf[TypeDef].rhs.asInstanceOf[TypeTree]
+            //println(s"TYCON: ${tycontree}")
+            val params = try {
+              tycontree match {
+                case d: {def constr: DefDef} =>
+                  //println(s"TYCONDD: ${d.constr}")
+                  println(d.constr.typeParams)
+                  d.constr.typeParams.map(p => Some(p.rhs))
+                case o =>
+                  //println(s"TYCONO: $o")
+                  List.fill(a.args.size)(None)
+              }
+            } catch {
+              case t: Throwable =>
+                //println(s"FAILEDON: ${tycontree}")
+                List.fill(a.args.size)(None)
+            }
+
+            val zargs = a.args.zip(params)
+
+            //println(params)
+            //println(s"TYCON: ${tycontree.asInstanceOf[{def constr: DefDef}].constr}")
+            //.asInstanceOf[DefDef].typeParams
+            val args = zargs.map {
+              case (tpe, defn) =>
+                next().inspectToB(tpe, defn)
+            }
+            val nameref = asNameRef(a.tycon)
+            FullReference(nameref.ref.name, args, prefix = nameref.prefix)
         }
 
-      //next().inspectSymbol(a.tycon.typeSymbol)
-
       case l: TypeLambda =>
-        log(s"LAMBDA: ${l.paramNames} ${l.resType}")
         val resType = next().inspectTType(l.resType)
         val paramNames = l.paramNames.map {
           LambdaParameter(_)
@@ -59,24 +81,20 @@ abstract class Inspector(protected val shift: Int) extends InspectorBase {
         LightTypeTagRef.Lambda(paramNames, resType)
 
       case t: ParamRef =>
-        log(s"PARAM REF: $t ")
-        NameReference(extractName(t))
+        asNameRef(t)
+
       case a: AndType =>
-        log(s"AND: rhs[${a.left}], lhs[${a.right}]")
         IntersectionReference(flattenInspectAnd(a))
 
       case o: OrType =>
-        log(s"OR: rhs[${o.left}], lhs[${o.right}]")
         UnionReference(flattenInspectOr(o))
 
       case r: TypeRef =>
-        //log(s"TYPEREF: ${r.name} ${r.translucentSuperType}")
-        log(s"TYPEREF: ${r.name} ${r.typeSymbol}")
         next().inspectSymbol(r.typeSymbol)
 
       case tb: TypeBounds => // weird thingy
-        //NameReference("WTF")
         next().inspectTType(tb.hi)
+
       case o =>
         log(s"TTYPE, UNSUPPORTED: $o")
         NameReference("???")
@@ -96,28 +114,84 @@ abstract class Inspector(protected val shift: Int) extends InspectorBase {
   }
 
   private[dottyreflection] def inspectSymbol(symbol: Symbol): AbstractReference = {
-    log(s"SYMTPE: ${symbol}; covariant:${symbol.flags.is(Flags.Covariant)}")
     symbol.tree match {
       case c: ClassDef =>
-        log(s"CLASSDEF, parents: ${c.parents}")
-        NameReference(c.name)
+        asNameRefSym(symbol)
       case t: TypeDef =>
-        log(s"TYPEDEF: $t")
         next().inspectTree(t.rhs.asInstanceOf[TypeTree])
+      case d: DefDef =>
+        next().inspectTree(d.returnTpt)
       case o =>
         log(s"SYMBOL, UNSUPPORTED: $o")
+        println(s"SYMBOL, UNSUPPORTED: $o")
         ???
     }
   }
 
-  private def inspectToB(tpe: TypeOrBounds): TypeParam = {
-    tpe match {
-      case t: TypeBounds =>
-        ???
-      case t: TType =>
-        TypeParam(inspectTType(t), Variance.Invariant)
+  private def prefixOf(symbol: Symbol): Option[AppliedReference] = {
+    if (symbol.maybeOwner.isNoSymbol) {
+      None
+    } else {
+      symbol.maybeOwner.tree match {
+        case _: PackageDef =>
+          None
+        case o =>
+          inspectSymbol(symbol.maybeOwner) match {
+            case a: AppliedReference =>
+              Some(a)
+            case _ =>
+              None
+          }
+      }
+
     }
   }
+
+  private def inspectToB(tpe: TypeOrBounds, td: Option[Tree]): TypeParam = {
+
+    val variance = td match {
+      case Some(value: TypeRef) =>
+        extractVariance(value.typeSymbol)
+      case _ =>
+        //println(s"HERE: $tpe, $td")
+        Variance.Invariant
+    }
+
+    tpe match {
+      case t: TypeBounds =>
+        TypeParam(inspectTType(t.hi), variance)
+      case t: TType =>
+        TypeParam(inspectTType(t), variance)
+    }
+  }
+
+
+  private def extractVariance(t: Symbol) = {
+    if (t.flags.is(Flags.Covariant)) {
+      Variance.Covariant
+    } else if (t.flags.is(Flags.Contravariant)) {
+      Variance.Contravariant
+    } else {
+      Variance.Invariant
+    }
+  }
+
+  //  private def extractVariance(t: TType) = {
+  //    val out = t match {
+  //      case r: TypeRef =>
+  //        ///println(s"TYPEREF: ${r} ${r.typeSymbol.flags} ${r.typeSymbol.flags.is(Flags.Covariant)} ${r.typeSymbol.flags.is(Flags.Contravariant)}")
+  //
+  //      case t: ParamRef =>
+  //        //println(s"XXXREF: ${t.binder.asInstanceOf[ {def paramInfos: List[Object]}].paramInfos(t.paramNum).toString}")
+  //        Variance.Invariant
+  //
+  //      case o =>
+  //        //println(s"OTHER: ${o} ${o.getClass}")
+  //        Variance.Invariant
+  //    }
+  //    //println(s"VAROUT: $t => ${out}")
+  //    out
+  //  }
 
   private def flattenInspectAnd(and: AndType): Set[AppliedReference] = {
     val (andTypes, otherTypes) =
@@ -157,13 +231,18 @@ abstract class Inspector(protected val shift: Int) extends InspectorBase {
     orTypeTags ++ otherTypeTags
   }
 
-  private def extractName(t: TType): String = {
+  private def asNameRef(t: TType): NameReference = {
     t match {
       case ref: TypeRef =>
-        ref.name
+        asNameRefSym(ref.typeSymbol)
       case t: ParamRef =>
-        t.binder.asInstanceOf[ {def paramNames: List[Object]}].paramNames(t.paramNum).toString
+        NameReference(t.binder.asInstanceOf[ {def paramNames: List[Object]}].paramNames(t.paramNum).toString)
     }
+  }
+
+  private[dottyreflection] def asNameRefSym(t: Symbol): NameReference = {
+    val prefix = prefixOf(t)
+    NameReference(SymName.SymTypeName(t.fullName), prefix = prefix)
   }
 }
 

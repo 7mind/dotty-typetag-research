@@ -11,9 +11,13 @@ trait InspectorBase {
 
   protected def shift: Int
 
-  protected def logStart(s: String) = println(" " * shift + s)
+  protected def logStart(s: String) = {
+    //println(" " * shift + s)
+  }
 
-  protected def log(s: String) = println(" " * shift + " -> " + s)
+  protected def log(s: String) = {
+    //println(" " * shift + " -> " + s)
+  }
 
   protected def logTpeAttrs[T](uns: TypeTree): Unit = {
     val symbol = uns.symbol
