@@ -42,12 +42,14 @@ abstract class Inspector(protected val shift: Int) extends InspectorBase {
           case Nil =>
             asNameRef(a.tycon)
           case o =>
+            // https://github.com/lampepfl/dotty/issues/8520
             val tycontree = a.tycon.asInstanceOf[TypeRef].typeSymbol.tree.asInstanceOf[TypeDef].rhs.asInstanceOf[TypeTree]
             //println(s"TYCON: ${tycontree}")
-            val params = try {
+            val params: List[Option[Tree]] = try {
               tycontree match {
                 case d: {def constr: DefDef} =>
                   //println(s"TYCONDD: ${d.constr}")
+                  println(d.constr)
                   println(d.constr.typeParams)
                   d.constr.typeParams.map(p => Some(p.rhs))
                 case o =>
@@ -62,9 +64,6 @@ abstract class Inspector(protected val shift: Int) extends InspectorBase {
 
             val zargs = a.args.zip(params)
 
-            //println(params)
-            //println(s"TYCON: ${tycontree.asInstanceOf[{def constr: DefDef}].constr}")
-            //.asInstanceOf[DefDef].typeParams
             val args = zargs.map {
               case (tpe, defn) =>
                 next().inspectToB(tpe, defn)
@@ -153,7 +152,6 @@ abstract class Inspector(protected val shift: Int) extends InspectorBase {
       case Some(value: TypeRef) =>
         extractVariance(value.typeSymbol)
       case _ =>
-        //println(s"HERE: $tpe, $td")
         Variance.Invariant
     }
 
@@ -175,23 +173,6 @@ abstract class Inspector(protected val shift: Int) extends InspectorBase {
       Variance.Invariant
     }
   }
-
-  //  private def extractVariance(t: TType) = {
-  //    val out = t match {
-  //      case r: TypeRef =>
-  //        ///println(s"TYPEREF: ${r} ${r.typeSymbol.flags} ${r.typeSymbol.flags.is(Flags.Covariant)} ${r.typeSymbol.flags.is(Flags.Contravariant)}")
-  //
-  //      case t: ParamRef =>
-  //        //println(s"XXXREF: ${t.binder.asInstanceOf[ {def paramInfos: List[Object]}].paramInfos(t.paramNum).toString}")
-  //        Variance.Invariant
-  //
-  //      case o =>
-  //        //println(s"OTHER: ${o} ${o.getClass}")
-  //        Variance.Invariant
-  //    }
-  //    //println(s"VAROUT: $t => ${out}")
-  //    out
-  //  }
 
   private def flattenInspectAnd(and: AndType): Set[AppliedReference] = {
     val (andTypes, otherTypes) =

@@ -47,6 +47,7 @@ abstract class FullDbInspector(protected val shift: Int) extends InspectorBase {
         case a: AppliedType =>
           val rref = inspector.inspectTType(a.tycon)
 
+          // https://github.com/lampepfl/dotty/issues/8514
           val main = inspectTTypeToFullBases(a.tycon).map {
             case (c, p) if c == rref => // TODO: XXX:
               (selfRef, p)
