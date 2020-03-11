@@ -71,9 +71,11 @@ abstract class Inspector(shift: Int) { self =>
         .filterNot(_._2.isEmpty)
       println(s"DB0: ${v}")
       println(s"DB1: ${f}")
+      SubtypeDBs(f, v)
 
       // println("--------")
-      SubtypeDBs(f, v)
+      //val f = Map.empty[AbstractReference, Set[AbstractReference]]
+      //SubtypeDBs(Map.empty, Map.empty)
   }
 
   def inspect(tpe: Type[_]): AbstractReference = {
@@ -92,7 +94,7 @@ abstract class Inspector(shift: Int) { self =>
     tpe2 match {
       case a: AppliedType =>
         //println(s"XXX: ${a.tycon}  ${a.tycon.getClass} => ${ next().inspectTTypeToNameBases(a.tycon)}")
-        next().inspectTTypeToNameBases(a.tycon) ++  a.args.flatMap{x => next().inspectToBToName(x)}
+        next().inspectTTypeToNameBases(a.tycon) //++  a.args.flatMap{x => next().inspectToBToName(x)}
 
 
       case l: TypeLambda =>
@@ -178,7 +180,7 @@ abstract class Inspector(shift: Int) { self =>
             (selfRef, p)
           case o =>
             o
-        } ++  a.args.flatMap{x => next().inspectToBToFull(x)}
+        } //++  a.args.flatMap{x => next().inspectToBToFull(x)}
 
 
       case l: TypeLambda =>
@@ -276,10 +278,13 @@ abstract class Inspector(shift: Int) { self =>
         next().inspectSymbol(r.typeSymbol)
 
       case tb: TypeBounds => // weird thingy
+        //NameReference("WTF")
         next().inspectTType(tb.hi)
       case o =>
         log(s"TTYPE, UNSUPPORTED: $o")
-        ???
+        NameReference("???")
+        //???
+
     }
   }
 

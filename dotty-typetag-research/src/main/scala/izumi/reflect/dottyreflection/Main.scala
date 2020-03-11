@@ -35,8 +35,10 @@ object Main {
     println(assert(Inspect.inspect[B] <:<  Inspect.inspect[A]))
 
     val listTag = Inspect.inspectK[Listoid]
+    val listTag0 = Inspect.inspectK[List]
     val intTag = Inspect.inspect[Int]
     val listIntTag = Inspect.inspect[Listoid[Int]]
+    val listIntTag0 = Inspect.inspect[List[Int]]
 
     println(assert(listTag.combine(intTag) <:< listIntTag))
 
