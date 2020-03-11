@@ -15,6 +15,6 @@ object TypeInspections {
   }
 
   def fullDb[T <: AnyKind : Type](given qctx0: QuoteContext): Map[AbstractReference, Set[AbstractReference]] = {
-    new DbInspector(0) { val qctx = qctx0 }.buildFullDb[T]
+    new FullDbInspector(0) { val qctx = qctx0 }.buildFullDb[T]
   }
 }
