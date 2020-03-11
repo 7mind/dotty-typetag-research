@@ -7,6 +7,8 @@ object Main {
   trait XS[+K]
   trait X[+A, -B <: Y] extends XS[A] {}
 
+  trait A
+  trait B extends A
   def main(args: Array[String]): Unit = {
     class Foo[+F[_]]()
     class Bar[+F[+_, +_]]() extends Foo[F[Int, *]]
@@ -20,10 +22,14 @@ object Main {
     println(s"Baz tag: ${bazTag}")
     println(s"Bar[X] tag: ${barXTag}")
 
+    println(barXTag.debug())
+
     println(assert(bazTag =:= bazTag2))
     println(assert(!(bazTag =:= barXTag)))
     println(assert(bazTag <:< bazTag2))
     println(assert(!(bazTag <:< barXTag)))
+
+    println(assert(Inspect.inspect[B] <:<  Inspect.inspect[A]))
 
     println("DONE")
   }

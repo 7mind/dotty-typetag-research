@@ -38,6 +38,28 @@ object Inspect {
     //prinltn(strDBs)
     '{ LightTypeTag.parse(${Expr(ref.hashCode())}, ${Expr(strRef)}, ${Expr(strDbs)}, 0) }
   }
+
+  //   def typetagMacroImplUni(t: Type[_])(given qctx: QuoteContext): Expr[LightTypeTag] = {
+  //   println("BEFORE")
+  //   val ref = InspectMacro.apply[T]
+  //   val dbs = InspectMacro.nameRefs[T]
+
+  //   @inline def serialize[A: Pickler](a: A): String = {
+  //     val bytes = PickleImpl(a).toByteBuffer.array()
+  //     new String(bytes, 0, bytes.length, StandardCharsets.ISO_8859_1)
+  //   }
+  //   val strRef = serialize(ref)(LightTypeTag.lttRefSerializer)
+  //   val strDbs = serialize(dbs)(LightTypeTag.subtypeDBsSerializer)
+
+  //   def string2hex(str: String): String = {
+  //       str.toList.map(_.toInt.toHexString).mkString
+  //   }
+  //   println(s"$ref => ${strRef.size} bytes, ${string2hex(strRef)}")
+  //   println(s"$dbs => ${strDbs.size} bytes, ${string2hex(strDbs)}")
+  //   println("AFTER")
+  //   //prinltn(strDBs)
+  //   '{ LightTypeTag.parse(${Expr(ref.hashCode())}, ${Expr(strRef)}, ${Expr(strDbs)}, 0) }
+  // }
 }
 
 abstract class Inspector(shift: Int) { self =>
